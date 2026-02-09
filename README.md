@@ -33,11 +33,6 @@ This project was created as a learning exercise to practice and demonstrate vari
 - Validates inputs (file existence, format support, empty data)
 - Graceful error handling with informative messages
 
-### 6. **Data Processing with Polars**
-- Uses the Polars library for efficient DataFrame operations
-- Demonstrates reading, writing, and transforming tabular data
-- Includes SQL query capabilities on DataFrames
-
 ### 7. **Batch Processing**
 - `batch_convert()` function handles multiple file conversions
 - Returns detailed results for each operation (success/failure)
