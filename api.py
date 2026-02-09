@@ -11,8 +11,6 @@ READERS = {
         ".csv": pl.read_csv,
     }
 
-from fastapi import HTTPException
-
 @app.post("/uploadfile/")
 async def upload_file(Output_format: str, file: UploadFile = File(...)):
     try:
