@@ -6,7 +6,7 @@ import polars as pl
 
 app = FastAPI()
 
-FORMATS = {
+READERS = {
         ".parquet": pl.read_parquet,
         ".csv": pl.read_csv,
     }
@@ -34,7 +34,7 @@ async def upload_file(Output_format: str, file: UploadFile = File(...)):
 async def query_file(file_path: str, sql: str):
     try:
         file_extension = Path(file_path).suffix
-        reader_function = FORMATS.get(file_extension)
+        reader_function = READERS.get(file_extension)
         if reader_function is None:
             raise ValueError(f"Unsupported file format: {file_extension}")
         df = reader_function(file_path).lazy().sql(sql).collect()
