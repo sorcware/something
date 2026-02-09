@@ -16,7 +16,7 @@ async def upload_file(Output_format: str, file: UploadFile = File(...)):
     try:
         # your existing code
         temp_path = Path("uploads") / file.filename
-        temp_path.parent.mkdir(exist_ok=True)
+        temp_path.parent.mkdir(parents=True, exist_ok=True)
         with temp_path.open("wb") as f:
             f.write(await file.read())
         converter = FileConverter(input_path=temp_path, output_extension=Output_format)

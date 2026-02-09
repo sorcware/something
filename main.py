@@ -127,19 +127,9 @@ class FileConverter:
     def __init__(self, input_path: Path, output_extension: str, output_dir: Optional[str] = None):
         self.input_path = input_path
         self.output_extension = output_extension
-        self.input_extension = self._get_file_extension(self.input_path)
+        self.input_extension = self.input_path.suffix
         self.output_dir = output_dir
         self.input_filename = self.input_path.stem
-    
-    def _get_file_extension(self, filename:Path) -> str:
-        """Extracts the file extension from a filename.
-
-        Args:
-            filename (str): The name of the file.
-        Returns:
-            str: The file extension.
-        """
-        return filename.suffix
     
     def _get_read_classes(self, extension: str) -> type[Read]:
         """Retrieves the appropriate reader classes based on the file extension.
