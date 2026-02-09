@@ -1,0 +1,22 @@
+POST /upload
+  Request: 
+    - Content-Type: multipart/form-data
+    - Body: file field with uploaded CSV file
+    - Optional: output_format (.parquet or .csv, default .parquet)
+  Response:
+    - Status: 200
+    - Body: {"file_path": "data/customers_20260209152035.parquet"}
+  Errors:
+    - 400: Invalid file format
+    - 500: Conversion/write failure
+
+POST /query
+  Request:
+    - Content-Type: application/json
+    - Body: {"file_path": "data/customers_20260209152035.parquet", "sql": "SELECT * FROM data WHERE age > 25"}
+  Response:
+    - Status: 200
+    - Body: {"columns": ["name", "age"], "rows": [["Alice", 30], ["Bob", 28]]}
+  Errors:
+    - 404: File not found
+    - 400: Invalid SQL or missing fields
