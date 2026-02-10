@@ -133,5 +133,6 @@ dmypy.json
 # Project-specific
 converted/
 data/
+uploads/
 *.csv
 *.parquet
