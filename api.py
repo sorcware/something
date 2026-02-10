@@ -5,6 +5,10 @@ import polars as pl
 from pydantic import BaseModel
 from typing import Annotated
 
+class UploadRequest(BaseModel):
+    output_format: str
+    output_dir: str | None = None
+
 class QueryRequest(BaseModel):
     file_path: str
     sql: str
@@ -17,14 +21,15 @@ READERS = {
     }
 
 @app.post("/uploadfile/")
-async def upload_file(output_format: Annotated[str, Form()],file: UploadFile = File(...)):
+async def upload_file(file: UploadFile = File(...),
+    output_format: str = Form(...),
+    output_dir: str | None = Form(None)):
     try:
-        # your existing code
         temp_path = Path("uploads") / file.filename
         temp_path.parent.mkdir(parents=True, exist_ok=True)
         with temp_path.open("wb") as f:
             f.write(await file.read())
-        converter = FileConverter(input_path=temp_path, output_extension=output_format)
+        converter = FileConverter(input_path=temp_path, output_extension=output_format, output_dir=output_dir)
         file_path = converter.convert()
         temp_path.unlink()
         return {"file_path": str(file_path)}
