@@ -19,39 +19,32 @@ function UploadSection({ onUploadSuccess, uploadedFilePath }) {
   const [format, setFormat] = useState(".parquet");
   const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState("");
-  
   const handleUpload = async () => {
     if (!selectedFile) {
       setError("Please select a file to upload.");
       return;
     }
-    if (selectedFile) {
-      setError("");
-      setIsUploading(true);
-      try {
-        const formData = new FormData();
-        formData.append("file", selectedFile);
-        formData.append("output_format", format);
-
-        fetch('http://localhost:8000/uploadfile/', {
-          method: 'POST',
-          body: formData
-        })
-        .then(response => response.json())
-        .then(data => {
-          onUploadSuccess(data.file_path);
-        })
-        .catch(error => {
-          setError("An error occurred during upload.");
-        })
-        .finally(() => {
-          setIsUploading(false);
-        });
-      } catch (err) {
-        setError("An error occurred during upload.");
-        setIsUploading(false);
+    setError("");
+    setIsUploading(true);
+    onUploadSuccess("");
+    try {
+      const formData = new FormData();  // Still need this
+      formData.append("file", selectedFile);
+      formData.append("output_format", format);
+      const response = await fetch('http://localhost:8000/uploadfile/', {
+        method: 'POST',
+        body: formData
+      });
+      const data = await response.json();
+      if (response.ok) {
+        onUploadSuccess(data.file_path);
+      } else {
+        setError(data.detail || "Upload failed");
       }
+    } catch (err) {
+      setError("An error occurred during upload.");
     }
+    setIsUploading(false);
   };
   return (
     <div>
