@@ -14,12 +14,23 @@ function App() {
   );
 }
 
+function logEvent(event, metadata) 
+  {
+  const timestamp = new Date().toISOString();
+  const eventData = { event, timestamp, metadata };
+  
+  fetch('http://localhost:8000/event/', 
+    { method: 'POST', headers: { 'Content-Type': 'application/json' },
+     body: JSON.stringify(eventData) }); }
+
+
 function UploadSection({ onUploadSuccess, uploadedFilePath }) {
   const [selectedFile, setSelectedFile] = useState(null);
   const [format, setFormat] = useState(".parquet");
   const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState("");
   const handleUpload = async () => {
+    logEvent("upload_clicked", {file_name: selectedFile ? selectedFile.name : null, output_format: format});
     if (!selectedFile) {
       setError("Please select a file to upload.");
       return;
@@ -28,7 +39,7 @@ function UploadSection({ onUploadSuccess, uploadedFilePath }) {
     setIsUploading(true);
     onUploadSuccess("");
     try {
-      const formData = new FormData();  // Still need this
+      const formData = new FormData();
       formData.append("file", selectedFile);
       formData.append("output_format", format);
       const response = await fetch('http://localhost:8000/uploadfile/', {
@@ -38,11 +49,14 @@ function UploadSection({ onUploadSuccess, uploadedFilePath }) {
       const data = await response.json();
       if (response.ok) {
         onUploadSuccess(data.file_path);
+        logEvent("upload_success", {file_name: selectedFile ? selectedFile.name : null, output_format: format, output_file_path: data.file_path});
       } else {
         setError(data.detail || "Upload failed");
+        logEvent("upload_failed", {file_name: selectedFile ? selectedFile.name : null, output_format: format, error: data.detail || "Upload failed"});
       }
     } catch (err) {
       setError("An error occurred during upload.");
+      logEvent("upload_failed", {file_name: selectedFile ? selectedFile.name : null, output_format: format, error: err.message || "An error occurred during upload."});
     }
     setIsUploading(false);
   };
@@ -79,6 +93,7 @@ function QuerySection({ filePath }) {
   const [isRunning, setIsRunning] = useState(false);
 
   const handleRunQuery = async () => {
+    logEvent("query_clicked", {file_path: filePath, sql: query});
     if (!query.trim()) {
       setError("Please enter a SQL query.");
       return;
@@ -94,11 +109,14 @@ function QuerySection({ filePath }) {
       const data = await response.json();
       if (response.ok) {
         setResult(data.result);
+        logEvent("query_success", {file_path: filePath, sql: query, result_count: data.result.length});
       } else {
         setError(data.error || "An error occurred while running the query.");
+        logEvent("query_failed", {file_path: filePath, sql: query, error: data.error || "An error occurred while running the query."});
       }
     } catch (err) {
       setError("An error occurred while running the query.");
+      logEvent("query_failed", {file_path: filePath, sql: query, error: err.message || "An error occurred while running the query."});
     } finally {
       setIsRunning(false);
     }

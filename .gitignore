@@ -134,5 +134,6 @@ dmypy.json
 converted/
 data/
 uploads/
+events/
 *.csv
 *.parquet

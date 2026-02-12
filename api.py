@@ -14,11 +14,16 @@ class QueryRequest(BaseModel):
     file_path: str
     sql: str
 
+class EventRequest(BaseModel):
+    event: str
+    timestamp: str
+    metadata: dict
+
 app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5175", "http://127.0.0.1:5175"],
+    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -60,3 +65,9 @@ async def query_file(request: QueryRequest):
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/event")
+async def log_event(request: EventRequest):
+    with open("events/events.jsonl", "a") as f:
+        print(f"Logging event: {request.event} at {request.timestamp} with metadata: {request.metadata}")
+        f.write(f"{request.json()}\n")
