@@ -5,7 +5,7 @@ function App() {
   return (
     <BrowserRouter>
       <div>
-        <h1>File Query Tool</h1>
+        <h1>Tool thing</h1>
         <nav>
           <Link to="/convert">Convert Files</Link> | 
           <Link to="/savetable">Save to Table</Link> | 
@@ -50,7 +50,7 @@ function ConvertSection() {
       const formData = new FormData();
       formData.append("file", selectedFile);
       formData.append("output_format", format);
-      const response = await fetch('http://localhost:8000/uploadfile/', {
+      const response = await fetch('http://localhost:8000/convertfile/', {
         method: 'POST',
         body: formData
       });

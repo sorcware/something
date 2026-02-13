@@ -34,7 +34,7 @@ READERS = {
         ".csv": pl.read_csv,
     }
 
-@app.post("/uploadfile/")
+@app.post("/convertfile/")
 async def upload_file(file: UploadFile = File(...),
     output_format: str = Form(...),
     output_dir: str | None = Form(None)):
