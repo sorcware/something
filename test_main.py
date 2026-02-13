@@ -1,7 +1,7 @@
 import pytest
 import polars as pl
 
-from main import ParquetWrite, CsvWrite, ParquetRead, CsvRead, FileConverter, batch_convert
+from main import ParquetWrite, CsvWrite, ParquetRead, CsvRead, FileConverter, batch_convert, TableWrite
 
 from pathlib import Path
 
@@ -182,3 +182,47 @@ def test_batch_file_converter_file_does_not_exist(tmp_path):
     assert results[1]["success"] is False
     assert results[2]["success"] is True
     assert pl.read_parquet(results[2]["output_path"]).equals(pl.DataFrame(data2))
+
+def test_table_write():
+    data = pl.DataFrame([
+        {"name": "Alice", "age": 30},
+        {"name": "Bob", "age": 25}
+    ])
+    writer = TableWrite(table="test_table", write_mode="overwrite")
+    output_path = writer.write(data)
+    assert pl.read_parquet(output_path).equals(data)
+    output_path.unlink()
+
+def test_table_write_none_data(tmp_path):
+    writer = TableWrite(table="test_table", write_mode="overwrite")
+    with pytest.raises(ValueError):
+        writer.write(None)
+
+def test_table_write_empty_data(tmp_path):
+    data = pl.DataFrame([])
+    writer = TableWrite(table="test_table", write_mode="overwrite")
+    assert writer.write(data) is None
+
+def test_table_write_append(tmp_path):
+    data1 = pl.DataFrame([
+        {"name": "Alice", "age": 30},
+        {"name": "Bob", "age": 25}
+    ])
+    data2 = pl.DataFrame([
+        {"name": "Charlie", "age": 35},
+        {"name": "David", "age": 40}
+    ])
+    writer = TableWrite(table="test_table", write_mode="append")
+    output_path1 = writer.write(data1)
+    output_path2 = writer.write(data2)
+    combined_data = pl.concat([data1, data2], how="diagonal")
+    assert pl.read_parquet(output_path2).equals(combined_data)
+    output_path1.unlink()
+
+def test_table_write_invalid_write_mode(tmp_path):
+    data = pl.DataFrame([
+        {"name": "Alice", "age": 30},
+        {"name": "Bob", "age": 25}
+    ])
+    with pytest.raises(ValueError):
+        writer = TableWrite(table="test_table", write_mode="invalid_mode")
