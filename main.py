@@ -196,32 +196,58 @@ def batch_convert(files: List[ConvertFile]) -> List[ConvertResult]:
             results.append({"input_path": file["input_path"], "output_path": None, "success": False, "error_message": str(e)})
     return results
         
+class TableWrite:
+    def __init__(self, table: str, write_mode: str):
+        WRITE_MODES = ["append", "overwrite"]
+        if write_mode not in WRITE_MODES:
+            raise ValueError(f"Invalid write mode: {write_mode}. Must be one of {WRITE_MODES}.")
+        Path("tables").mkdir(parents=True, exist_ok=True)
+        self.table = table
+        self.write_mode = write_mode
+
+    def write(self, data: pl.DataFrame) -> None:
+        logging.info("Writing data to table.")
+        if data is None:
+            logging.error("No data provided to write.")
+            raise ValueError("Data cannot be None.")
+        elif data.is_empty():
+            logging.warning("Empty data provided to write. No action will be taken.")
+            return None
+
+        destination = Path("tables") / f"{self.table}.parquet"
+        try:
+            if self.write_mode == "append":
+                logging.info("Appending data to existing table.")
+                if destination.exists():
+                    existing_data = pl.read_parquet(destination)
+                    combined_data = pl.concat([existing_data, data], how="diagonal")
+                    combined_data.write_parquet(destination)
+                    return destination
+                else:
+                    data.write_parquet(destination)
+                    return destination
+            elif self.write_mode == "overwrite":
+                logging.info("Overwriting existing table.")
+                data.write_parquet(destination)
+                return destination
+        except Exception as e:
+            logging.error(f"Failed to write to table: {e}")
+ 
 
 def main() -> Optional[Path]:
+    READERS = {
+        ".parquet": pl.read_parquet,
+        ".csv": pl.read_csv,
+    }
     logging.basicConfig(level=logging.INFO)
-    # data = [
-    #     {"name": "Alice", "age": 30},
-    #     {"name": "Bob", "age": 25},
-    # ]
-    # write= ParquetWrite()
-    # write.write(data)
-    # read = ParquetRead()
-    # df = read.read(Path("test.parquet"))
-    # print(df)
-    # converter = FileConverter(input_path=Path("test.parquet"), output_extension=".csv", output_dir="converted")
-    # file_name = converter.convert()
-    # print(f"File converted and saved as: {file_name}")
-
-    # batch_files = [
-    #     {"input_path": Path("test.parquet"), "output_extension": ".csv", "output_dir": "converted"},
-    #     {"input_path": Path("doesnotexist.csv"), "output_extension": ".parquet"},
-    # ]
-    # results = batch_convert(batch_files)
-    # print(results)
-    reader = CsvRead()
-    df = reader.read(Path("test.csv"))
-    results = pl.sql("SELECT * from df").collect()
-    print(results)
+    input_path = Path("test.csv")
+    file_extension = input_path.suffix
+    reader_function = READERS.get(file_extension)
+    df = reader_function(input_path)
+    table_name = "my_table"
+    write_mode = "append"
+    writer = TableWrite(table_name, write_mode)
+    writer.write(df)
 
 if __name__ == "__main__":
     main()

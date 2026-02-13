@@ -1,16 +1,23 @@
-import { useState } from 'react';
+import { useState, useEffect} from 'react';
+import { BrowserRouter, Routes, Route, Link } from 'react-router-dom';
 
 function App() {
-  const [uploadedFilePath, setUploadedFilePath] = useState("");
   return (
-    <div>
-      <h1>File Query Tool</h1>
-      <UploadSection 
-        onUploadSuccess={setUploadedFilePath} 
-        uploadedFilePath={uploadedFilePath}
-      />
-      {uploadedFilePath && <QuerySection filePath={uploadedFilePath} />}
-    </div>
+    <BrowserRouter>
+      <div>
+        <h1>File Query Tool</h1>
+        <nav>
+          <Link to="/convert">Convert Files</Link> | 
+          <Link to="/savetable">Save to Table</Link> | 
+          <Link to="/query">Query Tables</Link>
+        </nav>
+        <Routes>
+          <Route path="/convert" element={<ConvertSection />} />
+          <Route path="/savetable" element={<SaveTableTab />} />
+          <Route path="/query" element={<QuerySection />} />
+        </Routes>
+      </div>
+    </BrowserRouter>
   );
 }
 
@@ -24,8 +31,9 @@ function logEvent(event, metadata)
      body: JSON.stringify(eventData) }); }
 
 
-function UploadSection({ onUploadSuccess, uploadedFilePath }) {
+function ConvertSection() {
   const [selectedFile, setSelectedFile] = useState(null);
+  const [convertedFilePath, setConvertedFilePath] = useState("");
   const [format, setFormat] = useState(".parquet");
   const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState("");
@@ -37,7 +45,7 @@ function UploadSection({ onUploadSuccess, uploadedFilePath }) {
     }
     setError("");
     setIsUploading(true);
-    onUploadSuccess("");
+    setConvertedFilePath("");
     try {
       const formData = new FormData();
       formData.append("file", selectedFile);
@@ -48,7 +56,7 @@ function UploadSection({ onUploadSuccess, uploadedFilePath }) {
       });
       const data = await response.json();
       if (response.ok) {
-        onUploadSuccess(data.file_path);
+        setConvertedFilePath(data.file_path);
         logEvent("upload_success", {file_name: selectedFile ? selectedFile.name : null, output_format: format, output_file_path: data.file_path});
       } else {
         setError(data.detail || "Upload failed");
@@ -59,6 +67,11 @@ function UploadSection({ onUploadSuccess, uploadedFilePath }) {
       logEvent("upload_failed", {file_name: selectedFile ? selectedFile.name : null, output_format: format, error: err.message || "An error occurred during upload."});
     }
     setIsUploading(false);
+  };
+  const handleDownload = () => {
+    if (!convertedFilePath) return;
+    logEvent("download_clicked", {file_path: convertedFilePath});
+    window.open(`http://localhost:8000/download/${convertedFilePath}`, '_blank');
   };
   return (
     <div>
@@ -76,8 +89,96 @@ function UploadSection({ onUploadSuccess, uploadedFilePath }) {
       </select>
       <button onClick={handleUpload}>Upload</button>
       {isUploading && <p>Uploading...</p>}
-      {uploadedFilePath && (
-        <p style={{color: 'green'}}>✓ Uploaded: {uploadedFilePath}</p>
+      {convertedFilePath && (
+        <p style={{color: 'green'}}>✓ Uploaded: {convertedFilePath}</p>
+      )}
+      {error && (
+        <p style={{color: 'red'}}>✗ Error: {error}</p>
+      )}
+      <button onClick={handleDownload}>Download</button>
+    </div>
+  ); 
+}
+function SaveTableTab() {
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [tableName, setTableName] = useState("");
+  const [writeMode, setWriteMode] = useState("append");
+  const [isUploading, setIsUploading] = useState(false);
+  const [writeSuccess, setWriteSuccess] = useState("");
+  const [error, setError] = useState("");
+  const [tables, setTables] = useState([]);
+  
+  useEffect(() => {
+    fetch('http://localhost:8000/tables/')
+      .then(res => res.json())
+      .then(data => setTables(data.tables))
+      .catch(err => console.error(err));
+  }, []);
+
+  const handleUpload = async () => {
+    logEvent("upload_clicked", {file_name: selectedFile ? selectedFile.name : null, table_name: tableName, write_mode: writeMode});
+    if (!selectedFile) {
+      setError("Please select a file to upload.");
+      return;
+    }
+    if (!tableName.trim()) {
+      setError("Please enter a table name.");
+      return;
+    }
+    setError("");
+    setIsUploading(true);
+    setWriteSuccess("");
+
+    try {
+      const formData = new FormData();
+      formData.append("file", selectedFile);
+      formData.append("table_name", tableName);
+      formData.append("write_mode", writeMode);
+      const response = await fetch('http://localhost:8000/savetable/', {
+        method: 'POST',
+        body: formData
+      });
+      const data = await response.json();
+      if (response.ok) {
+        setWriteSuccess(data.destination);
+        logEvent("upload_success", {file_name: selectedFile ? selectedFile.name : null, table_name: tableName, write_mode: writeMode, destination: data.destination});
+      } else {
+        setError(data.detail || "Upload failed");
+        logEvent("upload_failed", {file_name: selectedFile ? selectedFile.name : null, table_name: tableName, write_mode: writeMode, error: data.detail || "Write failed"});
+      }
+    } catch (err) {
+      setError("An error occurred during upload.");
+      logEvent("upload_failed", {file_name: selectedFile ? selectedFile.name : null, table_name: tableName, write_mode: writeMode, error: err.message || "An error occurred during table write."});
+    }
+    setIsUploading(false);
+  };
+  return (
+    <div>
+      <h2>Write Table</h2>
+      <input 
+        type="file" 
+        onChange={(e) => setSelectedFile(e.target.files[0])}
+      />
+      <datalist id="tables">
+        {tables.map(table => <option key={table} value={table} />)}
+      </datalist>
+      <input 
+        placeholder="Select or type a name"
+        value={tableName}
+        onChange={(e) => setTableName(e.target.value)}
+        list="tables"
+      />
+      <select 
+        value={writeMode} 
+        onChange={(e) => setWriteMode(e.target.value)}
+      >
+        <option value="append">Append</option>
+        <option value="overwrite">Overwrite</option>
+      </select>
+      <button onClick={handleUpload}>Upload</button>
+      {isUploading && <p>Uploading...</p>}
+      {writeSuccess && (
+        <p style={{color: 'green'}}>✓ Uploaded: {writeSuccess}</p>
       )}
       {error && (
         <p style={{color: 'red'}}>✗ Error: {error}</p>
@@ -86,14 +187,23 @@ function UploadSection({ onUploadSuccess, uploadedFilePath }) {
   );
 }
 
-function QuerySection({ filePath }) {
+function QuerySection() {
+  const [tableName, setTableName] = useState("");
   const [query, setQuery] = useState("");
   const [result, setResult] = useState(null);
   const [error, setError] = useState("");
   const [isRunning, setIsRunning] = useState(false);
+  const [tables, setTables] = useState([]);
+  
+  useEffect(() => {
+    fetch('http://localhost:8000/tables/')
+      .then(res => res.json())
+      .then(data => setTables(data.tables))
+      .catch(err => console.error(err));
+  }, []);
 
   const handleRunQuery = async () => {
-    logEvent("query_clicked", {file_path: filePath, sql: query});
+    logEvent("query_clicked", {table_name: tableName, sql: query});
     if (!query.trim()) {
       setError("Please enter a SQL query.");
       return;
@@ -104,19 +214,19 @@ function QuerySection({ filePath }) {
       const response = await fetch('http://localhost:8000/query/', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ file_path: filePath, sql: query })
+        body: JSON.stringify({ table_name: tableName, sql: query })
       });
       const data = await response.json();
       if (response.ok) {
         setResult(data.result);
-        logEvent("query_success", {file_path: filePath, sql: query, result_count: data.result.length});
+        logEvent("query_success", {table_name: tableName, sql: query, result_count: data.result.length});
       } else {
         setError(data.error || "An error occurred while running the query.");
-        logEvent("query_failed", {file_path: filePath, sql: query, error: data.error || "An error occurred while running the query."});
+        logEvent("query_failed", {table_name: tableName, sql: query, error: data.error || "An error occurred while running the query."});
       }
     } catch (err) {
       setError("An error occurred while running the query.");
-      logEvent("query_failed", {file_path: filePath, sql: query, error: err.message || "An error occurred while running the query."});
+      logEvent("query_failed", {table_name: tableName, sql: query, error: err.message || "An error occurred while running the query."});
     } finally {
       setIsRunning(false);
     }
@@ -124,7 +234,14 @@ function QuerySection({ filePath }) {
   return (
     <div>
       <h2>Query File</h2>
-      <p>Querying: {filePath}</p>
+      <select 
+        value={tableName} 
+        onChange={(e) => setTableName(e.target.value)}
+      >
+        <option value="">Select a table</option>
+        {tables.map(table => <option key={table} value={table}>{table}</option>)}
+      </select>
+      <p>Querying</p>
       <textarea
         placeholder="SELECT * FROM self"
         rows={5}
@@ -171,4 +288,4 @@ function ResultsTable({ data }) {
     </table>
   );
 }
-export default App;  
+export default App;
