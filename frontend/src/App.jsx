@@ -38,9 +38,9 @@ function ConvertSection() {
   const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState("");
   const handleUpload = async () => {
-    logEvent("upload_clicked", {file_name: selectedFile ? selectedFile.name : null, output_format: format});
+    logEvent("convert_clicked", {file_name: selectedFile ? selectedFile.name : null, output_format: format});
     if (!selectedFile) {
-      setError("Please select a file to upload.");
+      setError("Please select a file to convert.");
       return;
     }
     setError("");
@@ -87,10 +87,10 @@ function ConvertSection() {
         <option value=".parquet">Parquet</option>
         <option value=".csv">CSV</option>
       </select>
-      <button onClick={handleUpload}>Upload</button>
-      {isUploading && <p>Uploading...</p>}
+      <button onClick={handleUpload}>Convert</button>
+      {isUploading && <p>Converting...</p>}
       {convertedFilePath && (
-        <p style={{color: 'green'}}>✓ Uploaded: {convertedFilePath}</p>
+        <p style={{color: 'green'}}>✓ Converted: {convertedFilePath}</p>
       )}
       {error && (
         <p style={{color: 'red'}}>✗ Error: {error}</p>
