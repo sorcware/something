@@ -76,13 +76,47 @@ def test_query_table(tmp_path):
     destination = tables_dir / "test_table.parquet"
     parquet_path.rename(destination)
     client = TestClient(app)
-    response = client.post("/query", json={"table_name": "test_table", "sql": "SELECT * FROM self"})
+    response = client.post("/query", json={"sql": "SELECT * FROM test_table"})
     assert response.status_code == 200
     result = response.json()["result"]
     assert len(result) == 2
     assert result[0]["name"] == "Alice"
     assert result[0]["age"] == 30
     destination.unlink()
+
+
+def test_query_table(tmp_path):
+    data = [
+        {"name": "Alice", "age": 30},
+        {"name": "Bob", "age": 25}
+    ]
+    data2 = [
+        {"name": "Charlie", "age": 35, "sex": "M"},
+        {"name": "David", "age": 40, "sex": "M"}
+    ]
+    parquet_path = tmp_path / "test.parquet"
+    pl.DataFrame(data).write_parquet(parquet_path)
+    parquet_path2 = tmp_path / "test2.parquet"
+    pl.DataFrame(data2).write_parquet(parquet_path2)
+    tables_dir = Path("tables")
+    tables_dir.mkdir(exist_ok=True)
+    destination = tables_dir / "test_table.parquet"
+    parquet_path.rename(destination)
+    destination2 = tables_dir / "test_table2.parquet"
+    parquet_path2.rename(destination2)
+    client = TestClient(app)
+    response = client.post("/query", json={"sql": "SELECT * FROM test_table as t cross join test_table2 as t2"})
+    assert response.status_code == 200
+    result = response.json()["result"]
+    print(result)
+    assert len(result) == 4
+    assert result[0]["name"] == "Alice"
+    assert result[0]["age"] == 30
+    assert result[0]["name:t2"] == "Charlie"
+    assert result[0]["age:t2"] == 35
+    assert result[0]["sex"] == "M"
+    destination.unlink()
+    destination2.unlink()
 
 def test_query_table_invalid_sql(tmp_path):
     data = [
@@ -96,8 +130,15 @@ def test_query_table_invalid_sql(tmp_path):
     destination = tables_dir / "test_table.parquet"
     parquet_path.rename(destination)
     client = TestClient(app)
-    response = client.post("/query", json={"table_name": "test_table", "sql": "This is not SQL"})
-    assert response.status_code == 500
+    response = client.post("/query", json={"sql": "This is not SQL"})
+    assert response.status_code == 400
     print(response.json())
     assert response.json()["detail"] == "sql parser error: Expected: an SQL statement, found: This at Line: 1, Column: 1"
     destination.unlink()
+
+def test_query_table_no_tables():
+    client = TestClient(app)
+    response = client.post("/query", json={"sql": "SELECT * FROM table_test"})
+    assert response.status_code == 400
+    print(response.json())
+    assert response.json()["detail"] == "relation 'table_test' was not found"

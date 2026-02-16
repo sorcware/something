@@ -10,6 +10,14 @@ def _get_timestamp() -> str:
     """Returns the current timestamp as a string."""
     return datetime.now().strftime("%Y%m%d%H%M%S")
 
+def _get_tables() -> list[str]:
+    tables_dir = Path("tables")
+    if not tables_dir.exists():
+        return {"tables": []}
+    table_files = list(tables_dir.glob("*.parquet"))
+    table_names = [file.stem for file in table_files]
+    return {"tables": table_names}
+    
 class ConvertFile(TypedDict):
     input_path: Path
     output_extension: str

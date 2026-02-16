@@ -188,7 +188,6 @@ function SaveTableTab() {
 }
 
 function QuerySection() {
-  const [tableName, setTableName] = useState("");
   const [query, setQuery] = useState("");
   const [result, setResult] = useState(null);
   const [error, setError] = useState("");
@@ -203,7 +202,7 @@ function QuerySection() {
   }, []);
 
   const handleRunQuery = async () => {
-    logEvent("query_clicked", {table_name: tableName, sql: query});
+    logEvent("query_clicked", { sql: query });
     if (!query.trim()) {
       setError("Please enter a SQL query.");
       return;
@@ -214,34 +213,27 @@ function QuerySection() {
       const response = await fetch('http://localhost:8000/query/', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ table_name: tableName, sql: query })
+        body: JSON.stringify({ sql: query })
       });
       const data = await response.json();
       if (response.ok) {
         setResult(data.result);
-        logEvent("query_success", {table_name: tableName, sql: query, result_count: data.result.length});
+        logEvent("query_success", { sql: query, result_count: data.result.length});
       } else {
         setError(data.error || "An error occurred while running the query.");
-        logEvent("query_failed", {table_name: tableName, sql: query, error: data.error || "An error occurred while running the query."});
+        logEvent("query_failed", { sql: query, error: data.error || "An error occurred while running the query."});
       }
     } catch (err) {
       setError("An error occurred while running the query.");
-      logEvent("query_failed", {table_name: tableName, sql: query, error: err.message || "An error occurred while running the query."});
+      logEvent("query_failed", { sql: query, error: err.message || "An error occurred while running the query."});
     } finally {
       setIsRunning(false);
     }
   };
   return (
     <div>
-      <h2>Query File</h2>
-      <select 
-        value={tableName} 
-        onChange={(e) => setTableName(e.target.value)}
-      >
-        <option value="">Select a table</option>
-        {tables.map(table => <option key={table} value={table}>{table}</option>)}
-      </select>
-      <p>Querying</p>
+      <h2>Query</h2>
+      <p>Available tables: {tables.join(", ")}</p>
       <textarea
         placeholder="SELECT * FROM self"
         rows={5}

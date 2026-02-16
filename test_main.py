@@ -1,7 +1,7 @@
 import pytest
 import polars as pl
 
-from main import ParquetWrite, CsvWrite, ParquetRead, CsvRead, FileConverter, batch_convert, TableWrite
+from main import ParquetWrite, CsvWrite, ParquetRead, CsvRead, FileConverter, batch_convert, TableWrite, _get_tables
 
 from pathlib import Path
 
@@ -226,3 +226,24 @@ def test_table_write_invalid_write_mode(tmp_path):
     ])
     with pytest.raises(ValueError):
         writer = TableWrite(table="test_table", write_mode="invalid_mode")
+    
+def test_get_tables(tmp_path):
+    data1 = pl.DataFrame([
+        {"name": "Alice", "age": 30},
+        {"name": "Bob", "age": 25}
+    ])
+    data2 = pl.DataFrame([
+        {"name": "Charlie", "age": 35},
+        {"name": "David", "age": 40}
+    ])
+    data1.write_parquet("tables/table1.parquet")
+    data2.write_parquet("tables/table2.parquet")
+    tables_info = _get_tables()
+    print(f"Tables info: {tables_info}")
+    assert "tables" in tables_info
+    assert "table1" in tables_info["tables"]
+    assert "table2" in tables_info["tables"]
+    path = Path("tables/table1.parquet")
+    path.unlink()
+    path = Path("tables/table2.parquet")
+    path.unlink()

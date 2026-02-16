@@ -1,17 +1,17 @@
 from fastapi import FastAPI, UploadFile, File, HTTPException, Form
 from fastapi.middleware.cors import CORSMiddleware
-from main import FileConverter, TableWrite
+from main import FileConverter, TableWrite, _get_tables
 from pathlib import Path
 import polars as pl
 from pydantic import BaseModel
 from typing import Annotated
+from fastapi.responses import FileResponse
 
 class UploadRequest(BaseModel):
     output_format: str
     output_dir: str | None = None
 
 class QueryRequest(BaseModel):
-    table_name: str
     sql: str
 
 class EventRequest(BaseModel):
@@ -55,14 +55,23 @@ async def upload_file(file: UploadFile = File(...),
 @app.post("/query")
 async def query_file(request: QueryRequest):
     try:
-        file_path = f"tables/{request.table_name}.parquet"
-        reader_function = READERS.get(".parquet")
-        df = reader_function(file_path).lazy().sql(request.sql).collect()
-        return {"result": df.to_dicts()}
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        all_tables = _get_tables().get("tables", [])
+        if not all_tables:
+            raise ValueError("No tables available to query.")
+        dfs = {}
+        print(f"Available tables: {all_tables}")
+        for table in all_tables:
+            file_path = Path("tables") / f"{table}.parquet"
+            print(f"Checking for table file: {file_path}")
+            if not file_path.exists():
+                raise ValueError(f"Table file not found: {file_path}")
+            dfs[table] = pl.scan_parquet(str(file_path))
+            print(f"loaded table: {table} from file: {file_path}")
+        ctx = pl.SQLContext().register_many(dfs)
+        result = ctx.execute(request.sql).collect()
+        return {"result": result.to_dicts()}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=400, detail=str(e))
 
 @app.post("/event")
 async def log_event(request: EventRequest):
@@ -93,14 +102,7 @@ async def save_table(file: UploadFile = File(...), table_name: str = Form(...), 
 
 @app.get("/tables")
 async def list_tables():
-    tables_dir = Path("tables")
-    if not tables_dir.exists():
-        return {"tables": []}
-    table_files = list(tables_dir.glob("*.parquet"))
-    table_names = [file.stem for file in table_files]
-    return {"tables": table_names}
-
-from fastapi.responses import FileResponse
+     return _get_tables()
 
 @app.get("/download/{file_path:path}")
 async def download_file(file_path: str):
