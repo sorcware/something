@@ -31,7 +31,7 @@ def _flatten_tables(nodes: list) -> list[dict]:
             tables.extend(_flatten_tables(node["children"]))
     return tables
 
-def _build_node(path: Path, file_store: Optional[str] = None) -> dict:
+def _build_node(path: Path, file_store: str) -> dict:
     node = {"name": path.stem}
     if path.is_file():
         relative = path.relative_to(Path(file_store))
