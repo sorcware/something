@@ -121,3 +121,19 @@ def test_query_table_no_tables():
     assert response.status_code == 400
     print(response.json())
     assert response.json()["detail"] == "relation 'table_test' was not found"
+
+def test_query_nested_table(tmp_path):
+    data = [
+        {"name": "Alice", "age": 30},
+        {"name": "Bob", "age": 25}
+    ]
+    parquet_path = tmp_path / "test.parquet"
+    pl.DataFrame(data).write_parquet(parquet_path)
+    nested_dir = tmp_path / "nested/subdir"
+    nested_dir.mkdir(parents=True, exist_ok=True)
+    destination = nested_dir / "test_table.parquet"
+    parquet_path.rename(destination)
+    client = TestClient(app)
+    response = client.post("/query", json={"file_store": str(tmp_path), "sql": "SELECT * FROM nested__subdir__test_table"})
+    assert response.status_code == 200
+    result = response.json()["result"]
