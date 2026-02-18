@@ -78,6 +78,7 @@ async def log_event(request: EventRequest):
     with open("events/events.jsonl", "a") as f:
         print(f"Logging event: {request.event} at {request.timestamp} with metadata: {request.metadata}")
         f.write(f"{request.json()}\n")
+        return Response(status_code=204)
 
 @app.post("/savetable")
 async def save_table(file: UploadFile = File(...), table_name: str = Form(...), write_mode: str = Form(...)):
@@ -110,7 +111,7 @@ async def download_file(file_path: str):
         full_path = Path(file_path).resolve()
         project_root = Path.cwd()
         
-        if not str(full_path).startswith(str(project_root)):
+        if not str(full_path).startswith(str(project_root / "data")):
             raise HTTPException(status_code=403, detail="Access denied")
         
         if not full_path.exists():
