@@ -4,19 +4,47 @@ import polars as pl
 import logging
 from datetime import datetime
 from pathlib import Path
+import json
 
 
 def _get_timestamp() -> str:
     """Returns the current timestamp as a string."""
     return datetime.now().strftime("%Y%m%d%H%M%S")
 
-def _get_tables() -> list[str]:
-    tables_dir = Path("tables")
-    if not tables_dir.exists():
-        return {"tables": []}
-    table_files = list(tables_dir.glob("*.parquet"))
-    table_names = [file.stem for file in table_files]
-    return {"tables": table_names}
+def get_table_tree(file_store:Optional[str] = None) -> str:
+    if file_store is None:
+        file_store_path = Path("tables")
+    else:
+        file_store_path = Path(file_store)
+    if not file_store_path.exists():
+        logging.warning(f"File store directory does not exist: {file_store_path}. Returning empty table tree.")
+        return json.dumps({"tables": []}, indent=2)
+
+    return json.dumps({"tables": _build_node(file_store_path, file_store)["children"]}, indent=2)
+
+def _flatten_tables(nodes: list) -> list[dict]:
+    tables = []
+    for node in nodes:
+        if "path" in node and "df_name" in node:
+            tables.append({"path": node["path"], "df_name": node["df_name"]})
+        elif "children" in node:
+            tables.extend(_flatten_tables(node["children"]))
+    return tables
+
+def _build_node(path: Path, file_store: Optional[str] = None) -> dict:
+    node = {"name": path.stem}
+    if path.is_file():
+        relative = path.relative_to(Path(file_store))
+        df_name = "__".join(p.replace(".parquet", "") for p in relative.parts)
+        node["path"] = str(relative)
+        node["df_name"] = df_name
+    else:
+        node["children"] = [
+            _build_node(child, file_store)
+            for child in sorted(path.iterdir())
+            if child.is_dir() or child.suffix == ".parquet"
+        ]
+    return node
     
 class ConvertFile(TypedDict):
     input_path: Path
@@ -243,19 +271,22 @@ class TableWrite:
  
 
 def main() -> Optional[Path]:
-    READERS = {
-        ".parquet": pl.read_parquet,
-        ".csv": pl.read_csv,
-    }
-    logging.basicConfig(level=logging.INFO)
-    input_path = Path("test.csv")
-    file_extension = input_path.suffix
-    reader_function = READERS.get(file_extension)
-    df = reader_function(input_path)
-    table_name = "my_table"
-    write_mode = "append"
-    writer = TableWrite(table_name, write_mode)
-    writer.write(df)
-
+    # READERS = {
+    #     ".parquet": pl.read_parquet,
+    #     ".csv": pl.read_csv,
+    # }
+    # logging.basicConfig(level=logging.INFO)
+    # input_path = Path("test.csv")
+    # file_extension = input_path.suffix
+    # reader_function = READERS.get(file_extension)
+    # df = reader_function(input_path)
+    # table_name = "my_table"
+    # write_mode = "append"
+    # writer = TableWrite(table_name, write_mode)
+    # writer.write(df)
+    tables = get_table_tree("tables")
+    print(f"Available tables: {tables}")
+    flattened = _flatten_tables(json.loads(tables)["tables"])
+    print(f"Flattened tables: {flattened}")
 if __name__ == "__main__":
     main()

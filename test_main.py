@@ -1,9 +1,11 @@
 import pytest
 import polars as pl
 
-from main import ParquetWrite, CsvWrite, ParquetRead, CsvRead, FileConverter, batch_convert, TableWrite, _get_tables
+from main import ParquetWrite, CsvWrite, ParquetRead, CsvRead, FileConverter, batch_convert, TableWrite, get_table_tree
 
 from pathlib import Path
+
+import json
 
 def test_parquet_write(tmp_path):
     data = [
@@ -227,7 +229,9 @@ def test_table_write_invalid_write_mode(tmp_path):
     with pytest.raises(ValueError):
         writer = TableWrite(table="test_table", write_mode="invalid_mode")
     
-def test_get_tables(tmp_path):
+def test_get_table_tree(tmp_path):
+    tables_dir = tmp_path / "tables"
+    tables_dir.mkdir()
     data1 = pl.DataFrame([
         {"name": "Alice", "age": 30},
         {"name": "Bob", "age": 25}
@@ -236,14 +240,45 @@ def test_get_tables(tmp_path):
         {"name": "Charlie", "age": 35},
         {"name": "David", "age": 40}
     ])
-    data1.write_parquet("tables/table1.parquet")
-    data2.write_parquet("tables/table2.parquet")
-    tables_info = _get_tables()
-    print(f"Tables info: {tables_info}")
-    assert "tables" in tables_info
-    assert "table1" in tables_info["tables"]
-    assert "table2" in tables_info["tables"]
-    path = Path("tables/table1.parquet")
-    path.unlink()
-    path = Path("tables/table2.parquet")
-    path.unlink()
+    data1.write_parquet(tables_dir / "table1.parquet")
+    data2.write_parquet(tables_dir / "table2.parquet")
+    
+    tables = get_table_tree(file_store=str(tables_dir))
+    tables_dict = json.loads(tables)
+    assert set(table["name"] for table in tables_dict["tables"]) == {"table1", "table2"}
+
+def test_get_table_tree_no_tables(tmp_path):
+    tables_dir = tmp_path / "tables"
+    tables_dir.mkdir()
+    
+    tables = get_table_tree(file_store=str(tables_dir))
+    tables_dict = json.loads(tables)
+    assert tables_dict["tables"] == []
+
+def test_get_table_tree_no_tables_directory(tmp_path):
+    tables = get_table_tree(file_store=str(tmp_path / "nonexistent_tables"))
+    tables_dict = json.loads(tables)
+    assert tables_dict["tables"] == []
+
+def test_get_table_tree_nested_tables(tmp_path):
+    tables_dir = tmp_path / "tables"
+    tables_dir.mkdir()
+    nested_dir = tables_dir / "nested"
+    nested_dir.mkdir()
+    
+    data1 = pl.DataFrame([
+        {"name": "Alice", "age": 30},
+        {"name": "Bob", "age": 25}
+    ])
+    data2 = pl.DataFrame([
+        {"name": "Charlie", "age": 35},
+        {"name": "David", "age": 40}
+    ])
+    data1.write_parquet(tables_dir / "table1.parquet")
+    data2.write_parquet(nested_dir / "table2.parquet")
+    
+    tables = get_table_tree(file_store=str(tables_dir))
+    tables_dict = json.loads(tables)
+    assert set(table["name"] for table in tables_dict["tables"]) == {"table1", "nested"}
+    nested_table = next(table for table in tables_dict["tables"] if table["name"] == "nested")
+    assert set(table["name"] for table in nested_table["children"]) == {"table2"}
