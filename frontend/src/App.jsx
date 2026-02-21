@@ -159,11 +159,9 @@ function SaveTableTab() {
         type="file" 
         onChange={(e) => setSelectedFile(e.target.files[0])}
       />
-      <datalist id="tables">
-        {tables.map(table => <option key={table} value={table} />)}
-      </datalist>
+      <div>Available tables: <TableTree tables={tables} /></div>
       <input 
-        placeholder="Select or type a name"
+        placeholder="Enter a name"
         value={tableName}
         onChange={(e) => setTableName(e.target.value)}
         list="tables"
@@ -186,6 +184,33 @@ function SaveTableTab() {
     </div>
   );
 }
+
+function TableTree({ tables }) {
+  return (
+    <ul>
+      {tables.map((node, i) => (
+        <TableNode key={i} node={node} />
+      ))}
+    </ul>
+  );
+}
+
+function TableNode({ node }) {
+return (
+node.children ? (
+  <li>
+    📁 {node.name}
+    <ul>
+      {node.children.map((child, i) => (
+        <TableNode key={i} node={child} />
+      ))}
+    </ul>
+  </li>
+) : (
+  <li>📄 {node.name}</li>  
+)
+);}
+
 
 function QuerySection() {
   const [query, setQuery] = useState("");
@@ -233,7 +258,7 @@ function QuerySection() {
   return (
     <div>
       <h2>Query</h2>
-      <p>Available tables: {tables.join(", ")}</p>
+      <div>Available tables: <TableTree tables={tables} /></div>
       <textarea
         placeholder="SELECT * FROM self"
         rows={5}
