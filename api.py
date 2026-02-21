@@ -5,7 +5,7 @@ from pathlib import Path
 import polars as pl
 from pydantic import BaseModel
 from typing import Annotated
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, Response
 import json
 
 class UploadRequest(BaseModel):

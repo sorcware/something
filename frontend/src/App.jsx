@@ -245,8 +245,8 @@ function QuerySection() {
         setResult(data.result);
         logEvent("query_success", { sql: query, result_count: data.result.length});
       } else {
-        setError(data.error || "An error occurred while running the query.");
-        logEvent("query_failed", { sql: query, error: data.error || "An error occurred while running the query."});
+        setError(data.detail || "An error occurred while running the query.");
+        logEvent("query_failed", { sql: query, error: data.detail || "An error occurred while running the query."});
       }
     } catch (err) {
       setError("An error occurred while running the query.");
