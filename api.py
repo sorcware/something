@@ -107,7 +107,7 @@ async def save_table(file: UploadFile = File(...), table_name: str = Form(...), 
 
 @app.get("/tables")
 async def list_tables():
-     return get_table_tree()
+     return json.loads(get_table_tree())
 
 @app.get("/download/{file_path:path}")
 async def download_file(file_path: str):

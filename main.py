@@ -20,7 +20,7 @@ def get_table_tree(file_store:Optional[str] = None) -> str:
         logging.warning(f"File store directory does not exist: {file_store_path}. Returning empty table tree.")
         return json.dumps({"tables": []}, indent=2)
 
-    return json.dumps({"tables": _build_node(file_store_path, file_store)["children"]}, indent=2)
+    return json.dumps({"tables": _build_node(file_store_path, file_store_path)["children"]}, indent=2)
 
 def _flatten_tables(nodes: list) -> list[dict]:
     tables = []
@@ -31,16 +31,16 @@ def _flatten_tables(nodes: list) -> list[dict]:
             tables.extend(_flatten_tables(node["children"]))
     return tables
 
-def _build_node(path: Path, file_store: str) -> dict:
+def _build_node(path: Path, file_store_path: str) -> dict:
     node = {"name": path.stem}
     if path.is_file():
-        relative = path.relative_to(Path(file_store))
+        relative = path.relative_to(Path(file_store_path))
         df_name = "__".join(p.replace(".parquet", "") for p in relative.parts)
         node["path"] = str(relative)
         node["df_name"] = df_name
     else:
         node["children"] = [
-            _build_node(child, file_store)
+            _build_node(child, file_store_path)
             for child in sorted(path.iterdir())
             if child.is_dir() or child.suffix == ".parquet"
         ]
