@@ -1,7 +1,7 @@
 import pytest
 import polars as pl
 
-from main import ParquetWrite, CsvWrite, ParquetRead, CsvRead, FileConverter, batch_convert, TableWrite, get_table_tree
+from main import ParquetWrite, CsvWrite, ParquetRead, CsvRead, FileConverter, batch_convert, TableWrite, get_table_tree, extract_data_from_pdf
 
 from pathlib import Path
 
@@ -282,3 +282,16 @@ def test_get_table_tree_nested_tables(tmp_path):
     assert set(table["name"] for table in tables_dict["tables"]) == {"table1", "nested"}
     nested_table = next(table for table in tables_dict["tables"] if table["name"] == "nested")
     assert set(table["name"] for table in nested_table["children"]) == {"table2"}
+
+def test_extract_data_from_pdf():
+    pdf_path = Path("test.pdf")
+    df = extract_data_from_pdf(pdf_path)
+    assert isinstance(df, pl.DataFrame)
+    assert not df.is_empty()
+    assert set(df.columns) == {"type", "element_id", "text", "metadata"}
+    assert len(df) == 97
+
+def test_extract_data_from_pdf_file_not_found():
+    pdf_path = Path("nonexistent.pdf")
+    with pytest.raises(ValueError):
+        extract_data_from_pdf(pdf_path)
