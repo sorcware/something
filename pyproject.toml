@@ -11,5 +11,6 @@ dependencies = [
     "pytest>=9.0.2",
     "pytest-cov>=7.0.0",
     "python-multipart>=0.0.22",
+    "unstructured[pdf]>=0.21.5",
     "uvicorn>=0.40.0",
 ]

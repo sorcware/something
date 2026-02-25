@@ -5,6 +5,8 @@ import logging
 from datetime import datetime
 from pathlib import Path
 import json
+from unstructured.partition.auto import partition
+from unstructured.staging.base import elements_to_dicts
 
 
 def _get_timestamp() -> str:
@@ -268,25 +270,24 @@ class TableWrite:
                 return destination
         except Exception as e:
             logging.error(f"Failed to write to table: {e}")
+
+def extract_data_from_pdf(pdf_path: Path) -> pl.DataFrame:
+    logging.info(f"Extracting data from PDF: {pdf_path}")
+    try:
+        elements = partition(str(pdf_path),strategy="fast",infer_table_structure=True)
+        element_dicts = elements_to_dicts(elements)
+        df = pl.DataFrame(element_dicts)
+        return df
+    except Exception as e:
+        logging.error(f"Failed to extract data from PDF: {e}")
+        raise ValueError(f"Failed to extract data from PDF: {e}")
  
 
 def main() -> Optional[Path]:
-    # READERS = {
-    #     ".parquet": pl.read_parquet,
-    #     ".csv": pl.read_csv,
-    # }
-    # logging.basicConfig(level=logging.INFO)
-    # input_path = Path("test.csv")
-    # file_extension = input_path.suffix
-    # reader_function = READERS.get(file_extension)
-    # df = reader_function(input_path)
-    # table_name = "my_table"
-    # write_mode = "append"
-    # writer = TableWrite(table_name, write_mode)
-    # writer.write(df)
-    tables = get_table_tree("tables")
-    print(f"Available tables: {tables}")
-    flattened = _flatten_tables(json.loads(tables)["tables"])
-    print(f"Flattened tables: {flattened}")
+    pdf_path = Path("test.pdf")
+
+    df = extract_data_from_pdf(pdf_path)
+    df.show()
+
 if __name__ == "__main__":
     main()
