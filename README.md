@@ -72,3 +72,12 @@ This project was created as a learning exercise to practice and demonstrate vari
 * Managed to implement polars lazy frames
 * The difference between HTTP error handling and domain exceptions
 * Managed to get my existing abstraction layers working in the API
+
+## To run app
+
+```bash
+uv run uvicorn api:app --reload
+```
+```bash
+cd frontend & npm run dev
+```
