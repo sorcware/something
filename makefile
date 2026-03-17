@@ -1,4 +1,4 @@
-.PHONY: dev backend frontend
+.PHONY: dev backend frontend test
 
 ROOT := $(shell pwd)
 
@@ -10,3 +10,6 @@ backend:
 
 frontend:
 	cd frontend && bun run dev
+
+test:
+	cd $(ROOT)/backend && uv run pytest
