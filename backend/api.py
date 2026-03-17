@@ -7,6 +7,12 @@ from pydantic import BaseModel
 from typing import Annotated
 from fastapi.responses import FileResponse, Response
 import json
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+
+CORS_ORIGINS = os.getenv("CORS_ORIGINS", "http://localhost:5173").split(",")
 
 class UploadRequest(BaseModel):
     output_format: str
@@ -25,7 +31,7 @@ app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],
+    allow_origins=CORS_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
