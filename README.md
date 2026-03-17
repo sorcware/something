@@ -1,10 +1,10 @@
 # File Converter Learning Project
 
-A Python project demonstrating object-oriented programming patterns and data file format conversion using Polars. I'm not trying to do anything fancy here, just learn. branching out into API development and a React front end eventually.
+A Python project demonstrating object-oriented programming patterns and data file format conversion using Polars. I'm not trying to do anything fancy here, just learn. Branching out into API development and a React front end eventually.
 
 ## About This Project
 
-This project was created as a learning exercise to practice and demonstrate various Python programming concepts and patterns. It implements a flexible file converter that can transform data between CSV and Parquet formats as well as an API Back end and eventually a front end. All of the code was written by humans with a little bit of auto complete for good measure. Any AI was used as a teacher only.
+This project was created as a learning exercise to practice and demonstrate various Python programming concepts and patterns. It implements a flexible file converter that can transform data between CSV and Parquet formats as well as an API back end and eventually a front end. All of the code was written by humans with a little bit of auto complete for good measure. Any AI was used as a teacher only.
 
 ## What This Demonstrates
 
@@ -43,21 +43,25 @@ This project was created as a learning exercise to practice and demonstrate vari
 - Automatic directory creation
 - Timestamped output files to prevent overwrites
 
-### 9. **Basic API design**
-- Uses FastAPI for it's modern design and performance
+### 9. **Basic API Design**
+- Uses FastAPI for its modern design and performance
 - File upload endpoint with multipart/form-data
-- Integration of your existing FileConverter abstractions into a web API
+- Integration of existing FileConverter abstractions into a web API
 - SQL query endpoint that handles multiple file formats
 - End-to-end tested with both CSV and Parquet
 
 ## Project Structure
 ```
 .
-├── main.py           # Core implementation
-├── api.py            # API implementation
-├── test_main.py      # Unit tests
-├── pyproject.toml    # Project configuration
-└── README.md         # This file
+├── backend/
+│   ├── api.py            # API implementation
+│   ├── main.py           # Core implementation
+│   ├── test_api.py       # API tests
+│   ├── test_main.py      # Unit tests
+│   └── pyproject.toml    # Project configuration
+├── frontend/             # React + Vite frontend
+├── Makefile              # Dev tooling
+└── README.md             # This file
 ```
 
 ## Learning Objectives Achieved
@@ -73,11 +77,14 @@ This project was created as a learning exercise to practice and demonstrate vari
 * The difference between HTTP error handling and domain exceptions
 * Managed to get my existing abstraction layers working in the API
 
-## To run app
+## Running the App
 
+Start both servers with a single command from the project root:
 ```bash
-uv run uvicorn api:app --reload
+make dev
 ```
+
+Run tests:
 ```bash
-cd frontend & npm run dev
+make test
 ```
