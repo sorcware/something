@@ -27,6 +27,10 @@ class EventRequest(BaseModel):
     timestamp: str
     metadata: dict
 
+class ValidateRequest(BaseModel):
+    sql: str
+    file_store: str | None = "tables"
+
 app = FastAPI()
 
 app.add_middleware(
@@ -134,3 +138,23 @@ async def download_file(file_path: str):
         )
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/validate")
+async def validate_query(request: ValidateRequest):
+    try:
+        all_tables = json.loads(get_table_tree(request.file_store))["tables"]
+        flattened_tables = _flatten_tables(all_tables)
+
+        dfs = {}
+        for file in flattened_tables:
+            file_path = Path(request.file_store) / file["path"]
+            if file_path.exists():
+                dfs[file["df_name"]] = pl.scan_parquet(str(file_path))
+            else:
+                dfs[file["df_name"]] = pl.LazyFrame()
+        
+        ctx = pl.SQLContext().register_many(dfs)
+        ctx.execute(request.sql, eager=False)
+        return {"valid": True}
+    except Exception as e:
+        return {"valid": False, "error": str(e)}

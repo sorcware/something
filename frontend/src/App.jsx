@@ -1,5 +1,6 @@
 import { useState, useEffect} from 'react';
 import { BrowserRouter, Routes, Route, Link } from 'react-router-dom';
+import SqlEditor from './components/SqlEditor';
 
 function App() {
   return (
@@ -255,17 +256,12 @@ function QuerySection() {
       setIsRunning(false);
     }
   };
+
   return (
     <div>
       <h2>Query</h2>
       <div>Available tables: <TableTree tables={tables} /></div>
-      <textarea
-        placeholder="SELECT * FROM self"
-        rows={5}
-        cols={50}
-        value={query}
-        onChange={(e) => setQuery(e.target.value)}
-      />
+      <SqlEditor value={query} onChange={setQuery} />
       <br />
       <button onClick={handleRunQuery} disabled={isRunning}>
         {isRunning ? "Running..." : "Run Query"}
