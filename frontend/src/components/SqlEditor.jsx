@@ -11,9 +11,10 @@ const theme = EditorView.theme({
   ".cm-content": { minHeight: "120px" },
 })
 
-export default function SqlEditor({ value, onChange, fileStore = "tables" }) {
+export default function SqlEditor({ value, onChange, fileStore = "tables", viewRef: externalRef }) {
   const containerRef = useRef(null)
-  const viewRef = useRef(null)
+  const internalRef = useRef(null)
+  const viewRef = externalRef ?? internalRef
   const debounceRef = useRef(null)
 
   const validate = useCallback(async (view, sqlText) => {

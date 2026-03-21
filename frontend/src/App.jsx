@@ -1,6 +1,8 @@
-import { useState, useEffect} from 'react';
+import { useState, useEffect, useRef} from 'react';
 import { BrowserRouter, Routes, Route, Link } from 'react-router-dom';
 import SqlEditor from './components/SqlEditor';
+import TableTree from "./components/TableTree";
+import { Tree } from "react-arborist";
 
 function App() {
   return (
@@ -186,39 +188,24 @@ function SaveTableTab() {
   );
 }
 
-function TableTree({ tables }) {
-  return (
-    <ul>
-      {tables.map((node, i) => (
-        <TableNode key={i} node={node} />
-      ))}
-    </ul>
-  );
-}
-
-function TableNode({ node }) {
-return (
-node.children ? (
-  <li>
-    📁 {node.name}
-    <ul>
-      {node.children.map((child, i) => (
-        <TableNode key={i} node={child} />
-      ))}
-    </ul>
-  </li>
-) : (
-  <li>📄 {node.name}</li>  
-)
-);}
-
-
 function QuerySection() {
   const [query, setQuery] = useState("");
   const [result, setResult] = useState(null);
   const [error, setError] = useState("");
   const [isRunning, setIsRunning] = useState(false);
   const [tables, setTables] = useState([]);
+  const editorViewRef = useRef(null)
+
+  const handleInsert = (tableName) => {
+    const view = editorViewRef.current
+    if (!view) return
+    const { from, to } = view.state.selection.main
+    view.dispatch({
+      changes: { from, to, insert: tableName },
+      selection: { anchor: from + tableName.length },
+    })
+    view.focus()
+  }
   
   useEffect(() => {
     fetch('http://localhost:8000/tables/')
@@ -260,8 +247,8 @@ function QuerySection() {
   return (
     <div>
       <h2>Query</h2>
-      <div>Available tables: <TableTree tables={tables} /></div>
-      <SqlEditor value={query} onChange={setQuery} />
+      <div>Available tables: <TableTree tables={tables} onInsert={handleInsert} /></div>
+      <SqlEditor value={query} onChange={setQuery} viewRef={editorViewRef} />
       <br />
       <button onClick={handleRunQuery} disabled={isRunning}>
         {isRunning ? "Running..." : "Run Query"}
